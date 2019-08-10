@@ -9,6 +9,7 @@ VIDEO_PATH='video'
 class ASCII_Player(BaseHTTPRequestHandler):
     
     def do_GET(self):
+        print self.path
         m = re.match(r'(?P<filepath>/' + VIDEO_PATH + '/.*)\?play',self.path)
         if m:
             self.send_response(200)
@@ -34,17 +35,23 @@ class ASCII_Player(BaseHTTPRequestHandler):
             return
         j = re.match(r'/(?P<filepath>.*\..*)$', self.path)
         if j:
-            path = os.path.join(os.path.dirname(__file__), j.groupdict()['filepath'])
+            path = os.path.join(os.path.dirname(os.path.realpath(__file__)), j.groupdict()['filepath'])
+            print "absolute path: {0}".format(path)
+            # print "__file__: {0}".format(__file__)
+
             if os.path.exists(path):
                 with open(path) as f:
                     response = f.read()
+                    self.send_response(200)
                     self.end_headers()
+                    
                     self.wfile.write(response)
             else:
                 self.send_response(404)
 
     def search(self):
-        path = os.path.join(os.path.dirname(__file__),VIDEO_PATH)
+        path = os.path.join(os.path.dirname(os.path.realpath(__file__)),VIDEO_PATH)
+    
         if os.path.exists(path):
             filelist = os.listdir(path)
             castlist = filter(lambda f: f.endswith('.cast'), filelist)
