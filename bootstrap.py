@@ -46,7 +46,7 @@ class ASCII_Player(BaseHTTPRequestHandler):
                     self.send_response(404)
             self.end_headers()
             if sys.version_info[0] > 2:
-                self.wfile.write(response.encode())
+                self.wfile.write(response.encode('UTF-8'))
             else:
                 self.wfile.write(response)
             return
@@ -54,14 +54,14 @@ class ASCII_Player(BaseHTTPRequestHandler):
         if j:
             path = os.path.join(os.path.dirname(os.path.realpath(__file__)), j.groupdict()['filepath'])
             if os.path.exists(path):
-                with open(path) as f:
+                with open(path,encoding='UTF-8') as f:
                     response = f.read()
                     try:
                         self.end_headers()
                     except:
                         pass
                     if sys.version_info[0] > 2:
-                        self.wfile.write(response.encode())
+                        self.wfile.write(response.encode('UTF-8'))
                     else:
                         self.wfile.write(response)
 
