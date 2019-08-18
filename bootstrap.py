@@ -14,9 +14,11 @@ else:
 #######################################
 import os
 import re
-
+import subprocess
+import shlex
 
 VIDEO_PATH='video'
+PLAIN_TEXT_FILE_SUFFIX_LIST=('.js','.py','.cast','.html','.css')
 
 class ASCII_Player(BaseHTTPRequestHandler):
     
@@ -53,21 +55,37 @@ class ASCII_Player(BaseHTTPRequestHandler):
         j = re.match(r'/(?P<filepath>.*\..*)$', self.path)
         if j:
             path = os.path.join(os.path.dirname(os.path.realpath(__file__)), j.groupdict()['filepath'])
+            is_plain = self.is_plain_text_file(path)
             if os.path.exists(path):
-                with open(path,encoding='UTF-8') as f:
-                    response = f.read()
-                    try:
-                        self.end_headers()
-                    except:
-                        pass
-                    if sys.version_info[0] > 2:
-                        self.wfile.write(response.encode('UTF-8'))
-                    else:
-                        self.wfile.write(response)
-
+                # Only linux support, by call "file --mine-type <filename>"
+                
+                if self.is_plain_text_file(path):
+                    f = open(path,encoding='UTF-8')
+                else:
+                    f= open(path,'rb')
+                
+                response = f.read()
+                try:
+                    self.end_headers()
+                except:
+                    pass
+                if sys.version_info[0] > 2:
+                    self.wfile.write(response.encode('UTF-8') if is_plain else response )
+                else:
+                    self.wfile.write(response)
+                f.close()
             else:
                 self.send_response(404)
 
+    def is_plain_text_file(self, path):
+        #cmd = shlex.split('file --mine-type {0}'.format(path))
+        #result = subprocess.check_output(cmd)
+        #mine_type = result.split()[-1]
+        for suffix in PLAIN_TEXT_FILE_SUFFIX_LIST:
+            if path.endswith(suffix):
+                return True
+        return False
+        
     def search(self):
         path = os.path.join(os.path.dirname(os.path.realpath(__file__)),VIDEO_PATH)
         if os.path.exists(path):
