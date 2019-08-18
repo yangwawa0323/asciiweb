@@ -21,61 +21,74 @@ VIDEO_PATH='video'
 PLAIN_TEXT_FILE_SUFFIX_LIST=('.js','.py','.cast','.html','.css')
 
 class ASCII_Player(BaseHTTPRequestHandler):
+
+    def asciinema(self, m ):
+        self.send_response(200)
+        self.end_headers()
+        play_file = m.groupdict()['filepath']
+        if sys.version_info[0] > 2:
+            self.wfile.write( self.format_player(play_file).encode())
+        else:
+            self.wfile.write( self.format_player(play_file))
+
+    def index(self):
+        filelist = self.search()
+        response = 'NO {0} sub-folder in current directory'.format(VIDEO_PATH)
+        if filelist:
+            response = '<html><body><div>'
+            self.send_response(200)
+            for f in filelist:
+                response += '<a href="{0}/{1}?play">{1}</a><br>'.format(VIDEO_PATH,f)
+                response += '</div></body></html>'
+            else:
+                self.send_response(404)
+        self.end_headers()
+        if sys.version_info[0] > 2:
+            self.wfile.write(response.encode('UTF-8'))
+        else:
+            self.wfile.write(response)
+    
+
+    def other(self, j):
+        path = os.path.join(os.path.dirname(os.path.realpath(__file__)), j.groupdict()['filepath'])
+        is_plain = self.is_plain_text_file(path)
+        if os.path.exists(path):
+            # Only linux support, by call "file --mine-type <filename>"
+            
+            if self.is_plain_text_file(path):
+                f = open(path,encoding='UTF-8')
+            else:
+                f= open(path,'rb')
+            
+            response = f.read()
+            try:
+                self.end_headers()
+            except:
+                pass
+            if sys.version_info[0] > 2:
+                self.wfile.write(response.encode('UTF-8') if is_plain else response )
+            else:
+                self.wfile.write(response)
+            f.close()
+        else:
+            self.send_response(404)
+    
     
     def do_GET(self):
+        
         m = re.match(r'(?P<filepath>/' + VIDEO_PATH + '/.*)\?play',self.path)
         if m:
-            self.send_response(200)
-            self.end_headers()
-            play_file = m.groupdict()['filepath']
-            if sys.version_info[0] > 2:
-                self.wfile.write( self.format_player(play_file).encode())
-            else:
-                self.wfile.write( self.format_player(play_file))
+            self.asciinema(m)
             return
 
         n = re.match(r'/$', self.path)
         if n:
-            filelist = self.search()
-            response = 'NO {0} sub-folder in current directory'.format(VIDEO_PATH)
-            if filelist:
-                response = '<html><body><div>'
-                self.send_response(200)
-                for f in filelist:
-                    response += '<a href="{0}/{1}?play">{1}</a><br>'.format(VIDEO_PATH,f)
-                    response += '</div></body></html>'
-                else:
-                    self.send_response(404)
-            self.end_headers()
-            if sys.version_info[0] > 2:
-                self.wfile.write(response.encode('UTF-8'))
-            else:
-                self.wfile.write(response)
+            self.index()      
             return
+        
         j = re.match(r'/(?P<filepath>.*\..*)$', self.path)
         if j:
-            path = os.path.join(os.path.dirname(os.path.realpath(__file__)), j.groupdict()['filepath'])
-            is_plain = self.is_plain_text_file(path)
-            if os.path.exists(path):
-                # Only linux support, by call "file --mine-type <filename>"
-                
-                if self.is_plain_text_file(path):
-                    f = open(path,encoding='UTF-8')
-                else:
-                    f= open(path,'rb')
-                
-                response = f.read()
-                try:
-                    self.end_headers()
-                except:
-                    pass
-                if sys.version_info[0] > 2:
-                    self.wfile.write(response.encode('UTF-8') if is_plain else response )
-                else:
-                    self.wfile.write(response)
-                f.close()
-            else:
-                self.send_response(404)
+            self.other(j)        
 
     def is_plain_text_file(self, path):
         #cmd = shlex.split('file --mine-type {0}'.format(path))
